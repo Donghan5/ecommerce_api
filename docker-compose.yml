@@ -1,0 +1,42 @@
+# Simple Docker Compose file to set up a NestJS with PostgreSQL and Go environment.
+
+version: '3.8'
+services:
+  nestjs:
+    image: nestjs/nest:latest
+    container_name: nestjs_app
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./:/usr/src/app
+    command: npm run start:dev
+    environment:
+      - NODE_ENV=development
+    depends_on:
+      - postgres
+  postgres:
+    image: postgres:13
+    container_name: postgres_db
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_USER=nestjs_user
+      - POSTGRES_PASSWORD=nestjs_password
+      - POSTGRES_DB=nestjs_db
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  go: 
+    image: golang:1.16
+    container_name: go_app
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./go-app:/go/src/app
+    working_dir: /go/src/app
+    command: go run main.go
+    depends_on:
+      - postgres
+volumes:
+    pgdata:
+      driver: local
+      name: pgdata
