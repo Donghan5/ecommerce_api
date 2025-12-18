@@ -3,32 +3,23 @@ import { Order } from './Order';
 
 @Entity('payments')
 export class Payment {
-	@PrimaryGeneratedColumn('uuid')
-	id!: string;
+	@PrimaryGeneratedColumn('uuid') id!: string;
 
-	@Column('uuid')
-	order_id!: string;
+	@Column('uuid', { name: 'order_id' }) orderId!: string;
 
-	@Column('varchar', { length: 50 })
-	provider!: string;
+	@Column('varchar', { length: 50 }) provider!: string;
 
-	@Column('varchar', { length: 255 })
-	transaction_id!: string;
+	@Column('varchar', { length: 255, name: 'transaction_id' }) transactionId!: string;
 
-	@Column('decimal', { precision: 19, scale: 4 })
-	amount!: number;
+	@Column('decimal', { precision: 19, scale: 4 }) amount!: number;
 
-	@Column('varchar', { length: 3 })
-	currency!: string;
+	@Column('varchar', { length: 3 }) currency!: string;
 
-	@Column('varchar', { length: 50 })
-	status!: string;
+	@Column('varchar', { length: 50 }) status!: string;
 
-	@Column('varchar', { length: 255, unique: true })
-	idempotency_key!: string;
+	@Column('varchar', { length: 255, unique: true, name: 'idempotency_key' }) idempotencyKey!: string;
 
-	@CreateDateColumn({ type: 'timestamp' })
-	created_at!: Date;
+	@CreateDateColumn({ type: 'timestamp', name: 'created_at' }) createdAt!: Date;
 
 	@ManyToOne(() => Order, (order) => order.payments)
 	order!: Order;

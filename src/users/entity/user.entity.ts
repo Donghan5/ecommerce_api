@@ -3,33 +3,27 @@ import { UserAddress } from './user_addresses.entity';
 
 @Entity('users')
 export class User {
-	@PrimaryGeneratedColumn({ type: 'uuid' })
-	id!: string;
+	@PrimaryGeneratedColumn({ type: 'uuid' }) id!: string;
 
-	@Column({ type: 'varchar', length: 255, unique: true })
-	email!: string;
+	@Column({ type: 'varchar', length: 255, unique: true }) email!: string;
 
-	@Column({ type: 'varchar', length: 255 })
-	password_hash!: string;
+	@Column({ type: 'varchar', length: 50, default: 'local' }) provider!: string;
 
-	@Column({ type: 'varchar', length: 100 })
-	first_name!: string;
+	@Column({ type: 'varchar', length: 255, nullable: true, name: 'password_hash' }) passwordHash!: string;
 
-	@Column({ type: 'varchar', length: 100 })
-	last_name!: string;
+	@Column({ type: 'varchar', length: 255, nullable: true, name: 'social_id'}) socialId!: string;
+	
+	@Column({ type: 'varchar', length: 100, name: 'first_name' }) firstName!: string;
 
-	@Column({ type: 'varchar', length: 20 })
-	role!: string;
+	@Column({ type: 'varchar', length: 100, name: 'last_name' }) lastName!: string;
 
-	@Column({ type: 'boolean', default: true })
-	is_active!: boolean;
+	@Column({ type: 'varchar', length: 20 }) role!: string;
 
-	@CreateDateColumn({ type: 'timestamp' })
-	created_at!: Date;
+	@Column({ type: 'boolean', default: true, name: 'is_active' }) isActive!: boolean;
 
-	@UpdateDateColumn({ type: 'timestamp' })
-	updated_at!: Date;
+	@CreateDateColumn({ type: 'timestamp', name: 'created_at' }) createdAt!: Date;
 
-	@OneToMany(() => UserAddress, (address) => address.user)
-	addresses!: UserAddress[];
+	@UpdateDateColumn({ type: 'timestamp', name: 'updated_at' }) updatedAt!: Date;
+
+	@OneToMany(() => UserAddress, (address) => address.user) addresses!: UserAddress[];
 }

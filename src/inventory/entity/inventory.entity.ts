@@ -1,22 +1,17 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
-import { ProductVariant } from './product_variant.entity';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { ProductVariant } from '../../product/entity/product_variant.entity';
 
 @Entity('inventory')
 export class Inventory {
-	@PrimaryGeneratedColumn('uuid')
-	id!: string;
+	@PrimaryGeneratedColumn('uuid') id!: string;
 
-	@Column('int', { default: 0 })
-	quantity_available!: number;
+	@Column('int', { default: 0, name: 'quantity_available' }) quantityAvailable!: number;
 
-	@Column('int')
-	quantity_reserved!: number;
+	@Column('int', { name: 'quantity_reserved' }) quantityReserved!: number;
 
-	@Column('varchar', { length: 100 })
-	warehouse_location!: string;
+	@Column('varchar', { length: 100, name: 'warehouse_location' }) warehouseLocation!: string;
 
-	@Column('timestamp')
-	last_restored_at!: Date;
+	@Column('timestamp', { name: 'last_restored_at' }) lastRestoredAt!: Date;
 
 	@ManyToOne(() => ProductVariant, (variant) => variant.inventory)
 	@JoinColumn({ name: 'variant_id' })

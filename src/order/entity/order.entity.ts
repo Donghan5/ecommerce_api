@@ -3,23 +3,17 @@ import { User } from '../../users/entity/user.entity';
 
 @Entity('orders')
 export class Order {
-	@PrimaryGeneratedColumn('uuid')
-	id!: string;
+	@PrimaryGeneratedColumn('uuid') id!: string;
 
-	@Column('varchar', { length: 50 }, { default: 'pending' })
-	status!: string;
-	
-	@Column('decimal', { precision: 19, scale: 4 })
-	total_amount!: number;
+	@Column('varchar', { length: 50 }, { default: 'pending' }) status!: string;
 
-	@Column('jsonb')
-	shipping_address!: Record<string, any>;
+	@Column('decimal', { precision: 19, scale: 4, name: 'total_amount' }) totalAmount!: number;
 
-	@Column('varchar', { length: 50 })
-	payment_method!: string;
+	@Column('jsonb', { name: 'shipping_address' }) shippingAddress!: Record<string, any>;
 
-	@CreateDateColumn({ type: 'timestamp' })
-	created_at!: Date;
+	@Column('varchar', { length: 50 }) paymentMethod!: string;
+
+	@CreateDateColumn({ type: 'timestamp', name: 'created_at' }) createdAt!: Date;
 
 	@ManyToOne(() => User, (user) => user.orders)
 	@JoinColumn({ name: 'user_id' })

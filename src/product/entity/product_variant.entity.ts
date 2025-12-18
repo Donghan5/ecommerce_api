@@ -6,9 +6,6 @@ export class ProductVariant {
 	@PrimaryGeneratedColumn('uuid')
 	id!: string;
 
-	@Column('uuid')
-	product_id!: string;
-
 	@Column('varchar', { length: 255 }, { nullable: false })
 	name!: string;
 
