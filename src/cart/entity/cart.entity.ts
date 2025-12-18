@@ -6,20 +6,20 @@ export class Cart {
 	@PrimaryGeneratedColumn('uuid')
 	id!: string;
 
-	@Column('uuid')
-	cartId!: string;
+	@Column('varchar', { length: 255 })
+	session_id!: string;
 
-	@Column('uuid')
-	variantId!: string;
+	@Column('varchar', { length: 20, default: 'active' })
+	status!: string;
 
 	@Column('int', { default: 1 })
 	quantity!: number;
 
 	@CreateDateColumn({ type: 'timestamp' })
-	createdAt!: Date;
+	created_at!: Date;
 
 	@UpdateDateColumn({ type: 'timestamp' })
-	updatedAt!: Date;
+	updated_at!: Date;
 
 	@ManyToOne(() => User, (user) => user.carts)
 	user!: User;

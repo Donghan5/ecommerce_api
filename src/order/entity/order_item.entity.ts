@@ -6,23 +6,23 @@ export class OrderItem {
 	id!: string;
 
 	@Column('uuid')
-	orderId!: string;
+	order_id!: string;
 
 	@Column('uuid')
-	variantId!: string;
+	variant_id!: string;
 
 	@Column('varchar', { length: 255 })
-	productNameSnapshot!: string;
+	product_name_snapshot!: string;
 
 	@Column('varchar', { length: 100 })
-	skuSnapshot!: string;
+	sku_snapshot!: string;
 
 	@Column('decimal', { precision: 19, scale: 4 })
-	priceSnapshot!: number;
+	price_snapshot!: number;
 
 	@Column('int')
 	quantity!: number;
 
 	@Column('decimal', { precision: 19, scale: 4 })
-	totalLinePrice!: number;
+	total_line_price!: number;
 }

@@ -7,13 +7,13 @@ export class Payment {
 	id!: string;
 
 	@Column('uuid')
-	orderId!: string;
+	order_id!: string;
 
 	@Column('varchar', { length: 50 })
 	provider!: string;
 
 	@Column('varchar', { length: 255 })
-	transactionId!: string;
+	transaction_id!: string;
 
 	@Column('decimal', { precision: 19, scale: 4 })
 	amount!: number;
@@ -25,10 +25,10 @@ export class Payment {
 	status!: string;
 
 	@Column('varchar', { length: 255, unique: true })
-	idempotencyKey!: string;
+	idempotency_key!: string;
 
 	@CreateDateColumn({ type: 'timestamp' })
-	createdAt!: Date;
+	created_at!: Date;
 
 	@ManyToOne(() => Order, (order) => order.payments)
 	order!: Order;

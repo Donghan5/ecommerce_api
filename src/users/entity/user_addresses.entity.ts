@@ -14,10 +14,10 @@ export class UserAddress {
 	user_id!: string;
 
 	@Column({ type: 'varchar', length: 255 })
-	addressLine1!: string;
+	address_line1!: string;
 
 	@Column({ type: 'varchar', length: 255 })
-	addressLine2!: string;
+	address_line2!: string;
 
 	@Column({ type: 'varchar', length: 100 })
 	city!: string;
