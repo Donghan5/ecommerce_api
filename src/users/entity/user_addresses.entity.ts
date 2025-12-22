@@ -10,9 +10,6 @@ export class UserAddress {
 	@JoinColumn({ name: 'user_id' })
 	user!: User;
 
-	@Column({ type: 'uuid' })
-	user_id!: string;
-
 	@Column({ type: 'varchar', length: 255 })
 	address_line1!: string;
 

@@ -9,8 +9,6 @@ export class Cart {
 
 	@Column('varchar', { length: 20, default: 'active' }) status!: string;
 
-	@Column('int', { default: 1 }) quantity!: number;
-
 	@CreateDateColumn({ type: 'timestamp', name: 'created_at' }) createdAt!: Date;
 
 	@UpdateDateColumn({ type: 'timestamp', name: 'updated_at' }) updatedAt!: Date;
