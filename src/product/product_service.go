@@ -1,16 +1,15 @@
-package main
+package product
 
 import (
 	"database/sql"
 	"log"
-	"fmt"
 	"time"
 )
 
 type Product struct {
-	ID string `json:"id"`
-	Name string `json:"name"`
-	BasePrice float64 `json:"base_price"`
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	BasePrice float64   `json:"base_price"`
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -51,7 +50,7 @@ func (s *ProductService) FindAllProducts() ([]Product, error) {
 }
 
 // find product by productID
-func (s *ProductService)FindByProductID(productID string) (*Product, error) {
+func (s *ProductService) FindByProductID(productID string) (*Product, error) {
 	var p Product
 
 	log.Println("Querying product by productID, and return product name and price")
@@ -82,7 +81,7 @@ func (s *ProductService) FindNameAndPrice(productID string) (string, float64, er
 
 func (s *ProductService) findByFilter(filter string) ([]Product, error) {
 	searchPattern := "%" + filter + "%"
-	
+
 	rows, err := s.DB.Query("SELECT id, name, base_price, created_at FROM products WHERE name LIKE $1", searchPattern)
 
 	if err != nil {
