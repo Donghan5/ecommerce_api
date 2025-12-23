@@ -14,7 +14,7 @@ func NewInventoryService(db *sql.DB) *InventoryService {
 }
 
 // check inventory (quantity)
-func (s *InventoryService) CheckInventory(variantId string) (int, error) {
+func (s *InventoryService) CheckStock(variantId string) (int, error) {
 	query := "SELECT stock FROM inventory WHERE variant_id = $1"
 	
 	var stock int
@@ -26,3 +26,30 @@ func (s *InventoryService) CheckInventory(variantId string) (int, error) {
 	}
 	return stock, nil
 }
+
+// When the client reject the order, the stock should be increased
+// quantity is string because it is from the request (json)
+func (s *InventoryService) IncreaseStock(variantId string, quantity string) error {
+	query := "UPDATE inventory SET stock = stock + $1 WHERE variant_id = $2"
+	
+	_, err := s.DB.Exec(query, quantity, variantId)
+	if err != nil {
+		log.Println("Error updating stock:", err)
+		return err
+	}
+	return nil
+}
+
+// When the client accept the order, the stock should be decreased
+// quantity is string because it is from the request (json)
+func (s *InventoryService) DecreaseStock(variantId string, quantity string) error {
+	query := "UPDATE inventory SET stock = stock - $1 WHERE variant_id = $2"
+	
+	_, err := s.DB.Exec(query, quantity, variantId)
+	if err != nil {
+		log.Println("Error updating stock:", err)
+		return err
+	}
+	return nil
+}
+
