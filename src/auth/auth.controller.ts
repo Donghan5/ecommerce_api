@@ -2,12 +2,13 @@ import 'jsonwebtoken';
 import { AuthService } from './auth.service';
 import { Request, Response, Controller, Post, UseGuards, Get } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
+import { CreateUserDto } from '../users/dto/create-user.dto';
 
 @Controller('auth')
 export class AuthController {
-	constructor(private authService: AuthService) {}
+	constructor(private authService: AuthService) { }
 
-	
+
 	@UseGuards(AuthGuard('local'))
 	@Post('login')
 	async login(@Request() req) {
@@ -27,7 +28,7 @@ export class AuthController {
 	}
 
 	@Post('register')
-	async register(@Body() registerDto: any) {
+	async register(@Body() registerDto: CreateUserDto) {
 		return this.authService.register(registerDto);
 	}
 }

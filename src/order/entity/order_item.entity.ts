@@ -1,10 +1,13 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, JoinColumn } from 'typeorm';
+import { Order } from './order.entity';
 
 @Entity('order_items')
 export class OrderItem {
 	@PrimaryGeneratedColumn('uuid') id!: string;
 
-	@Column('uuid', { name: 'order_id' }) orderId!: string;
+	@ManyToOne(() => Order, (order) => order.items, { onDelete: 'CASCADE' })
+	@JoinColumn({ name: 'order_id' })
+	order!: Order;
 
 	@Column('uuid', { name: 'variant_id' }) variantId!: string;
 

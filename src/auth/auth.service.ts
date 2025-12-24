@@ -3,15 +3,16 @@ import { UserService } from "../users/service/user.service";   // import users s
 import * as bcrypt from "bcrypt";
 import { User } from "../users/entity/user.entity";
 import { JwtService } from "@nestjs/jwt";
+import { CreateUserDto } from "../users/dto/create-user.dto";
 
 @Injectable()
 export class AuthService {
-	constructor(private userService: UserService, private jwtService: JwtService) {}
+	constructor(private userService: UserService, private jwtService: JwtService) { }
 
 	// verify local user
 	async validateLocalUser(email: string, password: string): Promise<User | null> {
 		const user = await this.userService.findByEmail(email);
-	
+
 		if (user && user.provider === 'local' && user.passwordHash) {
 			const isPasswordMatched = await bcrypt.compare(password, user.passwordHash);
 			if (isPasswordMatched) {
@@ -41,7 +42,7 @@ export class AuthService {
 		});
 		return newUser;
 	}
-	
+
 	async login(user: any) {
 		const payload = { email: user.email, sub: user.id };
 		return {
@@ -49,7 +50,7 @@ export class AuthService {
 		};
 	}
 
-	async register(registerDto: any) {
+	async register(registerDto: CreateUserDto) {
 		const existingUser = await this.userService.findByEmail(registerDto.email);
 		if (existingUser) {
 			throw new UnauthorizedException('User already exists');
@@ -59,14 +60,12 @@ export class AuthService {
 		const passwordHashed = await bcrypt.hash(registerDto.password, salt);
 
 		const newUser = await this.userService.create({
-			email: registerDto.email,
-			firstName: registerDto.firstName,
-			lastName: registerDto.lastName,
+			...registerDto,
 			provider: 'local',
 			passwordHash: passwordHashed,
-		});
+		} as any);
 
-		const { passwordHashed, ...result} = newUser;
+		const { passwordHashed, ...result } = newUser;
 		return result;
 	}
 }

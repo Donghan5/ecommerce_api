@@ -16,7 +16,7 @@ export class CartItem {
 	cart!: Cart;
 
 	// connection with variant db (store variant here)
-	@ManyToOne(() => ProductVariant, (variant) => variant.items)
+	@ManyToOne(() => ProductVariant)
 	@JoinColumn({ name: 'variant_id' })
 	variant!: ProductVariant;
 }

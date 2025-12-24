@@ -1,12 +1,14 @@
-import { BadRequestException, Injectable, InternalServerErrorException } from "@nestjs/common";
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, DataSource } from "typeorm";
 import { lastValueFrom } from "rxjs";
 import { User } from "../users/entity/user.entity";
 import { Order } from "./entity/order.entity";
-import { OrderItem } from "./entity/order-item.entity";
-import { CartItem } from "../cart/entity/cart_item.entity";
+import { OrderItem } from "./entity/order_item.entity";
+import { CartItemDto } from "../cart/dto/cart-item.dto";
+import { ProductVariant } from "../product/entity/product_variant.entity";
+import { PaymentService } from "../payment/payment.service";
 
 @Injectable()
 export class OrderService {
@@ -17,80 +19,204 @@ export class OrderService {
 		@InjectRepository(OrderItem)
 		private orderItemRepository: Repository<OrderItem>,
 
+		@InjectRepository(ProductVariant)
+		private productVariantRepository: Repository<ProductVariant>,
+
 		private readonly httpService: HttpService,
+		private readonly paymentService: PaymentService,
 		private dataSource: DataSource,
 	) { }
 
-	async createOrder(user: User, items: CartItem[]) {
-		const queryRunner = this.dataSource.createQueryRunner();
-		await queryRunner.connect();
-		await queryRunner.startTransaction();
+	async createOrder(user: User, items: CartItemDto[]) {
 
-		let savedOrder: Order;
+		const pendingOrder = await this.savePendingOrder(user, items);
+
+		// tracker for reserved items (to rollback in case of failure)
+		const reservedItemsTracker: CartItemDto[] = [];
 
 		try {
-			const order = new Order();
-			order.user = user;
-			order.status = 'pending';
-			order.paymentMethod = 'credit_card';
-			order.totalAmount = 0;
-			order.shippingAddress = user.address;
+			await this.decreaseInventory(items, reservedItemsTracker);
 
-			savedOrder = await queryRunner.manager.save(order);
+			await this.processOrder(pendingOrder);
 
-			let totalAmount = 0;
-			for (const item of items) {
-				const orderItem = new OrderItem();
-				orderItem.order = savedOrder;
-				orderItem.variantId = item.variant.id; // import from cart_item
-				orderItem.quantity = item.quantity;
+			return await this.confirmOrder(pendingOrder);
 
-				orderItem.productNameSnapShot = item.variant.name;
-				orderItem.skuSnapShot = item.variant.sku;
-				orderItem.priceSnapShot = item.variant.base_price;
-
-				orderItem.totalLinePrice = Number(item.variant.base_price) * Number(item.quantity);
-				totalAmount += orderItem.totalLinePrice;
-
-				await queryRunner.manager.save(orderItem);
-			}
 		} catch (error) {
-			await queryRunner.rollbackTransaction();
-			throw new InternalServerErrorException('Failed to create order');
-		} finally {
-			await queryRunner.release();
-		}
+			console.error('Go Server Inventory Update Failed:', error.message);
 
-		try {
-			for (const item of items) {
-				const url = 'http://go_app:8080/inventory/decrease';
+			// Compensating Transaction (Roll back)
+			await this.handleOrderFailure(pendingOrder, reservedItemsTracker);
+
+			throw new BadRequestException('Inventory update failed, order cancelled.');
+		}
+	}
+
+	// helper function to save pending order
+	private async savePendingOrder(user: User, items: CartItemDto[]): Promise<Order> {
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+
+        try {
+            const order = new Order();
+            order.user = user;
+            order.status = 'pending';
+            order.paymentMethod = 'credit_card';
+            order.totalAmount = 0;
+            order.shippingAddress = user.addresses?.[0] || {};
+
+            const savedOrder = await queryRunner.manager.save(order);
+            let totalAmount = 0;
+
+            for (const item of items) {
+                const variant = await this.productVariantRepository.findOne({ where: { id: item.variantId } });
+                if (!variant) throw new NotFoundException(`Variant not found: ${item.variantId}`);
+
+                const orderItem = new OrderItem();
+                orderItem.order = savedOrder;
+                orderItem.variantId = variant.id;
+                orderItem.quantity = item.quantity;
+                orderItem.productNameSnapshot = variant.name;
+                orderItem.skuSnapshot = variant.sku;
+                orderItem.priceSnapshot = variant.price;
+                orderItem.totalLinePrice = Number(variant.price) * Number(item.quantity);
+
+                totalAmount += orderItem.totalLinePrice;
+                await queryRunner.manager.save(orderItem);
+            }
+
+            savedOrder.totalAmount = totalAmount;
+            await queryRunner.manager.save(savedOrder);
+            
+            await queryRunner.commitTransaction();
+            return savedOrder;
+
+        } catch (error) {
+            await queryRunner.rollbackTransaction();
+            throw new InternalServerErrorException('Failed to create pending order');
+        } finally {
+            await queryRunner.release();
+        }
+    }
+
+	// helper function to decrease stock
+	private async decreaseInventory(items: CartItemDto[], reservedItemsTracker: CartItemDto[]) {
+		for (const item of items) {
+				const url = process.env.GO_ADDRESS + '/inventory/decrease';
 
 				const payload = {
-					variant_id: item.variant.id,
+					variant_id: item.variantId,
 					quantity: item.quantity,
 				};
 
 				await lastValueFrom(this.httpService.post(url, payload));
 
-				savedOrder.status = 'confirmed';
-				await this.orderRepository.save(savedOrder);
-
-				return savedOrder;
+				reservedItemsTracker.push(item);
 			}
-		} catch (error) {
-			console.error('Go Server failed:', error.message);
-
-			await this.orderRepository.delete(savedOrder.id);
-
-			throw new BadRequestException('Failed to create order');
-		}
 	}
 
-	async getAllOrders() { }
+	private async processOrder(order: Order) {
+		return this.paymentService.processPayment(order);
+	}
 
-	async getOrderById() { }
+	private async confirmOrder(order: Order): Promise<Order> {
+		order.status = 'confirmed';
+		return this.orderRepository.save(order);
+	}
 
-	async updateOrder() { }
+	// handle order failure (with rollback transaction)
+	private async handleOrderFailure(order: Order, reservedItemsTracker: CartItemDto[]) {
+		for (const item of reservedItemsTracker) {
+				try {
+					const url = process.env.GO_ADDRESS + '/inventory/increase';
 
-	async deleteOrder() { }
+					const payload = {
+						variant_id: item.variantId,
+						quantity: item.quantity
+					};
+
+					await lastValueFrom(this.httpService.post(url, payload));
+					console.log(`Stock resotred for variant ${item.variantId}`);
+				} catch (rollbackError) {
+					console.error(`Failed to rollback for variant ${item.variantId}:`, rollbackError);
+				}
+			}
+
+			await this.orderRepository.delete(order.id);
+	}
+
+	// get all orders of specific user
+	async getAllOrders(user: User) {
+		return this.orderRepository.find({
+			where: { user: { id: user.id } },
+			relations: ['items'],
+			order: { createdAt: 'DESC' }
+		});
+	}
+
+	// get order by id
+	async getOrderById(orderId: string, user: User) {
+		const order = await this.orderRepository.findOne({
+			where: { id: orderId },
+			relations: ['items', 'user'],
+		})
+
+		if (!order) {
+			throw new NotFoundException('Order not found')
+		}
+
+		if (order.user.id !== user.id && user.role !== 'admin') {
+			throw new BadRequestException('No right to access this order')
+		}
+
+		return order
+	}
+
+	// update order status (pending, confirmed, cancelled)
+	async updateOrderStatus(orderId: string, newStatus: string) {
+		const order = await this.orderRepository.findOne({ where: { id: orderId }, relations: ['items'] });
+
+		if (!order) {
+			throw new NotFoundException('Order not found')
+		}
+
+		if (order.status === 'shipped' && newStatus === 'cancelled') {
+			throw new BadRequestException('Order cannot be cancelled after it has been shipped or order is already cancelled')
+		}
+
+		if (newStatus === 'cancelled' && order.status !== 'cancelled') {
+			try {
+				for (const item of order.items) {
+					const url = process.env.GO_ADDRESS + '/inventory/increase';
+
+					const payload = {
+						variant_id: item.variantId,
+						quantity: item.quantity,
+					};
+
+					await lastValueFrom(this.httpService.post(url, payload));
+				}
+			} catch (error) {
+				console.error('Failed to restore stock: ', error);
+			}
+		}
+		order.status = newStatus;
+
+		return this.orderRepository.save(order);
+	}
+
+	// delete order
+	async deleteOrder(orderId: string) {
+		const order = await this.orderRepository.findOne({ where: { id: orderId } });
+
+		if (!order) {
+			throw new NotFoundException('Order not found')
+		}
+
+		if (order.status === 'shipped') {
+			throw new BadRequestException('Order cannot be deleted after it has been shipped')
+		}
+
+		await this.orderRepository.delete(orderId);
+	}
 }
