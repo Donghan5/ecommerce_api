@@ -3,12 +3,12 @@ import { Type } from "class-transformer";
 
 export class CartItemDto {
     @IsNotEmpty()
-    @IsUUID('4', { message: '유효한 UUID 형식이 아닙니다.' })
+    @IsUUID('4', { message: 'Not vaild UUID.' })
     variantId: string;
 
     @IsNotEmpty()
-    @IsInt({ message: '수량은 정수여야 합니다.' })
-    @Min(1, { message: '수량은 최소 1개 이상이어야 합니다.' })
+    @IsInt({ message: 'Not vaild integer.' })
+    @Min(1, { message: 'Not vaild integer.' })
     @Type(() => Number)
     quantity: number;
 }
