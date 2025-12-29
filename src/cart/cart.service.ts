@@ -5,6 +5,8 @@ import { Cart } from './entity/cart.entity';
 import { CartItem } from './entity/cart_item.entity';
 import { ProductVariant } from '../product/entity/product_variant.entity';
 import { CartItemDto } from './dto/cart-item.dto';
+import { BadRequestException } from '@nestjs/common';
+import { Inventory } from '../inventory/entity/inventory.entity';
 
 @Injectable()
 export class CartService {
@@ -15,6 +17,8 @@ export class CartService {
 		private cartItemRepository: Repository<CartItem>,
 		@InjectRepository(ProductVariant)
 		private productVariantRepository: Repository<ProductVariant>,
+		@InjectRepository(Inventory)
+		private inventoryRepository: Repository<Inventory>,
 	) { }
 
 	async createCart(userId?: string): Promise<Cart> {
@@ -47,12 +51,27 @@ export class CartService {
 			throw new NotFoundException(`Product Variant with ID ${variantId} not found`);
 		}
 
+		const inventory = await this.inventoryRepository.findOne({
+			where: { variant: { id: variantId }}
+		});
+
+		if (!inventory) {
+			throw new NotFoundException(`Inventory with variant ID ${variantId} not found`);
+		}
+
 		let cartItem = await this.cartItemRepository.findOne({
 			where: {
 				cart: { id: cartId },
 				variant: { id: variantId },
 			},
 		});
+
+		const currentQuantityInCart = cartItem ? cartItem.quantity : 0;
+		const totalRequestedQuantity = currentQuantityInCart + quantity;
+
+		if (totalRequestedQuantity > inventory.quantityAvailable) {
+			throw new BadRequestException(`Not enough stock for variant ${variantId} (requested: ${totalRequestedQuantity}, available: ${inventory.quantityAvailable})`);
+		}
 
 		if (cartItem) {
 			// Update quantity

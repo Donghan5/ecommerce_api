@@ -5,6 +5,11 @@ import (
 	"net/http"
 )
 
+type StockUpdateRequest struct {
+	VariantId string `json:"variant_id"`
+	Quantity int `json:"quantity"`
+}
+
 type InventoryHandler struct {
 	Service *InventoryService
 }
@@ -24,10 +29,13 @@ func (h *InventoryHandler) CheckStock(c *gin.Context) {
 }
 
 func (h *InventoryHandler) IncreaseStock(c *gin.Context) {
-	variantId := c.Param("variant_id")
-	quantity := c.Query("quantity")
+	var req StockUpdateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
 
-	err := h.Service.IncreaseStock(variantId, quantity)
+	err := h.Service.IncreaseStock(req.VariantId, req.Quantity) 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
@@ -36,10 +44,13 @@ func (h *InventoryHandler) IncreaseStock(c *gin.Context) {
 }
 
 func (h *InventoryHandler) DecreaseStock(c *gin.Context) {
-	variantId := c.Param("variant_id")
-	quantity := c.Query("quantity")
+	var req StockUpdateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
 
-	err := h.Service.DecreaseStock(variantId, quantity)
+	err := h.Service.DecreaseStock(req.VariantId, req.Quantity)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return

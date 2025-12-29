@@ -6,6 +6,11 @@ import { CartItemDto } from './dto/cart-item.dto';
 export class CartController {
 	constructor(private readonly cartService: CartService) { }
 
+	@Post()
+	async createCart() {
+		return this.cartService.createCart();
+	}
+
 	@Get(':cartId')
 	async getCart(@Param('cartId') cartId: string) {
 		return this.cartService.getCart(cartId);

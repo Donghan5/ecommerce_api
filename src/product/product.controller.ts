@@ -5,6 +5,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { Roles } from '../auth/decorators/roles.decorator';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { CreateVariantDto } from '../cart/dto/create-variant.dto';
 
 @Controller('products')
 export class ProductController {
@@ -33,5 +34,12 @@ export class ProductController {
 			throw new NotFoundException('Product not found');
 		}
 		return result;
+	}
+
+	@Post(':id/variants')
+	@UseGuards(AuthGuard('jwt'), RolesGuard)
+	@Roles('admin')
+	async createVariant(@Param('id') id: string, @Body() createVariantDto: CreateVariantDto) {
+		return this.productService.createVariant(id, createVariantDto);
 	}
 }

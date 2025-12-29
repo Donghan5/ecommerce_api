@@ -25,7 +25,7 @@ export class UserService {
 	async getUserWithAddresses(userId: string) {
 		const user = this.userRepository.findOne({
 			where: { id: userId },
-			relations: ['address'],
+			relations: ['addresses'],
 		});
 	}
 
@@ -41,7 +41,7 @@ export class UserService {
 			where: { id: userId },
 			select: ['provider'],
 		});
-		return user?.provider;
+		return user?.provider ?? null;
 	}
 
 	async create(createUserDto: CreateUserDto): Promise<User> {
