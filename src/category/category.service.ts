@@ -1,15 +1,18 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Inject } from "@nestjs/common";
 import { CreateCategoryDto } from "./dto/create-category.dto";
 import { Category } from "./entity/category.entity";
 import { Repository } from "typeorm";
+import { InjectRepository } from "@nestjs/typeorm";
 import { Redis } from "ioredis";
 import { UpdateCategoryDto } from "./dto/update-category.dto";
 
 @Injectable()
 export class CategoryService {
 	constructor(
-		private readonly repo: Repository<Category>,
-		private readonly redisClient: Redis,
+		@InjectRepository(Category)
+		private readonly repo:Repository<Category>,
+		@Inject('REDIS_CLIENT')
+		private readonly redisClient:Redis,
 	) {}
 
 

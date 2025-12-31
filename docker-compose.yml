@@ -1,19 +1,23 @@
-# Simple Docker Compose file to set up a NestJS with PostgreSQL and Go environment.
-
 version: '3.8'
 services:
-  nestjs:
-    image: nestjs/nest:latest
-    container_name: nestjs_app
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./:/usr/src/app
-    command: npm run start:dev
-    environment:
-      - NODE_ENV=development
-    depends_on:
-      - postgres
+  # NestJS is commented out because 'npm run test:e2e' runs locally on your machine.
+  # keeping it enabled might cause port 3000 conflicts.
+  # nestjs:
+  #   image: node:18-alpine
+  #   container_name: nestjs_app
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ./:/usr/src/app
+  #   working_dir: /usr/src/app
+  #   command: npm run start:dev
+  #   environment:
+  #     - NODE_ENV=development
+  #     - POSTGRES_HOST=postgres
+  #   depends_on:
+  #     - postgres
+  #     - redis
+
   postgres:
     image: postgres:13
     container_name: postgres_db
@@ -25,22 +29,41 @@ services:
       - POSTGRES_DB=nestjs_db
     volumes:
       - pgdata:/var/lib/postgresql/data
-  go: 
-    image: golang:1.16
-    container_name: go_app
-    ports:
-      - "8080:8080"
-    volumes:
-      - ./go-app:/go/src/app
-    working_dir: /go/src/app
-    command: go run main.go
-    depends_on:
-      - postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -U nestjs_user -d nestjs_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
   redis:
     image: redis:alpine
     container_name: redis_db
     ports:
       - "6379:6379"
+
+  go: 
+    image: golang:1.20-alpine # Updated to 1.20 for v9 redis compatibility
+    container_name: go_app
+    ports:
+      - "8080:8080" # Exposed so your local NestJS tests can hit http://localhost:8080
+    volumes:
+      - ./:/app # Mount the root directory so it sees 'src/main.go'
+    working_dir: /app
+    command: go run src/main.go # Adjusted path to match your project structure
+    environment:
+      - GO_PORT=8080
+      - POSTGRES_HOST=postgres # Hostname matches the service name above
+      - POSTGRES_USER=nestjs_user
+      - POSTGRES_PASSWORD=nestjs_password
+      - POSTGRES_DB=nestjs_db
+      - REDIS_ADDR=redis:6379
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
 volumes:
     pgdata:
       driver: local
