@@ -1,7 +1,7 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 import { ProductVariant } from '../../product/entity/product_variant.entity';
 
-@Entity('inventory')
+@Entity('inventories')
 export class Inventory {
 	@PrimaryGeneratedColumn('uuid') id!: string;
 
@@ -13,7 +13,7 @@ export class Inventory {
 
 	@Column('timestamp', { name: 'last_restored_at' }) lastRestoredAt!: Date;
 
-	@ManyToOne(() => ProductVariant, (variant) => variant.inventory)
+	@ManyToOne(() => ProductVariant, (variant) => variant.inventories)
 	@JoinColumn({ name: 'variant_id' })
 	variant!: ProductVariant;
 }

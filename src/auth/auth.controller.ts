@@ -1,6 +1,6 @@
 import 'jsonwebtoken';
 import { AuthService } from './auth.service';
-import { Request, Response, Controller, Post, UseGuards, Get } from '@nestjs/common';
+import { Request, Body, Controller, Post, UseGuards, Get } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { CreateUserDto } from '../users/dto/create-user.dto';
 
@@ -11,19 +11,19 @@ export class AuthController {
 
 	@UseGuards(AuthGuard('local'))
 	@Post('login')
-	async login(@Request() req) {
+	async login(@Request() req: any) {
 		return this.authService.login(req.user);
 	}
 
 	@Get('google')
 	@UseGuards(AuthGuard('google'))
-	async googleLogin(@Request() req) {
+	async googleLogin(@Request() req: any) {
 		// Guard send the request to google
 	}
 
 	@Get('google/redirect')
 	@UseGuards(AuthGuard('google'))
-	async googleLoginCallback(@Request() req) {
+	async googleLoginCallback(@Request() req: any) {
 		return this.authService.login(req.user);
 	}
 

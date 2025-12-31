@@ -3,7 +3,7 @@ import { IsNotEmpty, IsOptional, IsString, IsUUID, IsInt, Min } from "class-vali
 export class CreateCategoryDto {
     @IsNotEmpty()
 	@IsString()
-    name: string;
+    name!: string;
 
 	@IsOptional()
 	@IsUUID(4, { message: 'parent category must be uuid' })

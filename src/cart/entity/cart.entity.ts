@@ -19,5 +19,5 @@ export class Cart {
 	user!: User;
 
 	@OneToMany(() => CartItem, (cartItem) => cartItem.cart)
-	items: CartItem[];
+	items!: CartItem[];
 }

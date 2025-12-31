@@ -1,9 +1,11 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 import { UserAddress } from './user_addresses.entity';
+import { Cart } from '../../cart/entity/cart.entity';
+import { Order } from '../../order/entity/order.entity';
 
 @Entity('users')
 export class User {
-	@PrimaryGeneratedColumn({ type: 'uuid' }) id!: string;
+	@PrimaryGeneratedColumn('uuid') id!: string;
 
 	@Column({ type: 'varchar', length: 255, unique: true }) email!: string;
 
@@ -26,4 +28,8 @@ export class User {
 	@UpdateDateColumn({ type: 'timestamp', name: 'updated_at' }) updatedAt!: Date;
 
 	@OneToMany(() => UserAddress, (address) => address.user) addresses!: UserAddress[];
+
+	@OneToMany(() => Order, (order) => order.user) orders!: Order[];
+
+	@OneToMany(() => Cart, (cart) => cart.user) carts!: Cart[];
 }

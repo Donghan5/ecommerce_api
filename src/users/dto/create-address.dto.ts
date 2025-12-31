@@ -1,9 +1,9 @@
-import { IsNotEmpty, IsString } from "class-validator";
+import { IsNotEmpty, IsString, IsOptional, IsBoolean } from "class-validator";
 
 export class CreateAddressDto {
 	@IsNotEmpty()
 	@IsString()
-	addressLine1: string;
+	addressLine1!: string;
 
 	@IsOptional()
 	@IsString()
@@ -11,15 +11,15 @@ export class CreateAddressDto {
 
 	@IsNotEmpty()
 	@IsString()
-	city: string;
+	city!: string;
 
 	@IsNotEmpty()
 	@IsString()
-	postalCode: string;
+	postalCode!: string;
 
 	@IsNotEmpty()
 	@IsString()
-	country: string;
+	country!: string;
 
 	@IsOptional()
 	@IsBoolean()

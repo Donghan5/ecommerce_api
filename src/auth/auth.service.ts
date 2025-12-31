@@ -1,5 +1,5 @@
 import { Injectable, UnauthorizedException } from "@nestjs/common";
-import { UserService } from "../users/service/user.service";   // import users service
+import { UserService } from "../users/user.service";   // import users service
 import * as bcrypt from "bcrypt";
 import { User } from "../users/entity/user.entity";
 import { JwtService } from "@nestjs/jwt";
@@ -39,7 +39,7 @@ export class AuthService {
 			provider: 'google',
 			passwordHash: '',
 			socialId: details.socialId,
-		});
+		} as any);
 		return newUser;
 	}
 
@@ -65,7 +65,7 @@ export class AuthService {
 			passwordHash: passwordHashed,
 		} as any);
 
-		const { passwordHashed, ...result } = newUser;
+		const { passwordHash, ...result } = newUser;
 		return result;
 	}
 }

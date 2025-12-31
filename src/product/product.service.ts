@@ -1,12 +1,12 @@
 import { Injectable, NotFoundException } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { Repository, DataSource } from "typeorm";
 import { CreateProductDto } from "./dto/create-product.dto";
 import { Product } from "./entity/product.entity";
 import { UpdateProductDto } from "./dto/update-product.dto";
+import { CreateVariantDto } from "../cart/dto/create-variant.dto";
 import { ProductVariant } from "./entity/product_variant.entity";
 import { Inventory } from "../inventory/entity/inventory.entity";
-import { CreateVariantDto } from "../cart/dto/create-variant.dto";
 
 @Injectable()
 export class ProductService {
@@ -17,6 +17,7 @@ export class ProductService {
 		private productVariantRepository: Repository<ProductVariant>,
 		@InjectRepository(Inventory)
 		private inventoryRepository: Repository<Inventory>,
+		private dataSource: DataSource,
 	) { }
 
 	async createVariant(productId: string, createVariantDto: CreateVariantDto) {
@@ -25,25 +26,33 @@ export class ProductService {
 			throw new NotFoundException(`Product with ID ${productId} not found`);
 		}
 
-		const variant = this.productVariantRepository.create({
-			...createVariantDto,
-			product,
-			compareAtPrice: createVariantDto.price,
-			attributes: createVariantDto.attributes || {},
-		});
+		const queryRunner = this.dataSource.createQueryRunner();
+		await queryRunner.connect();
+		await queryRunner.startTransaction();
+		try {
+			const variant = queryRunner.manager.create(ProductVariant, {
+				...createVariantDto,
+				product,
+				compareAtPrice: createVariantDto.compareAtPrice ?? createVariantDto.price,
+				attributes: createVariantDto.attributes || {},
+			});
 
-		const savedVariant = await this.productVariantRepository.save(variant);
+			const savedVariant = await queryRunner.manager.save(variant);
 
-		const inventory = this.inventoryRepository.create({
-			variant: savedVariant,
-			quantityAvailable: createVariantDto.stock,
-			quantityReserved: 0,
-			warehouseLocation: 'Default Warehouse',
-			lastRestoredAt: new Date(),
-		});
-		await this.inventoryRepository.save(inventory);
-
-		return savedVariant;
+			const inventory = queryRunner.manager.create(Inventory, {
+				variant: savedVariant,
+				quantityAvailable: createVariantDto.stock,
+				quantityReserved: 0,
+				warehouseLocation: 'Default Warehouse',
+				lastRestoredAt: new Date(),
+			});
+			await this.inventoryRepository.save(inventory);
+		} catch (error) {
+			await queryRunner.rollbackTransaction();
+			throw error;
+		} finally {
+			await queryRunner.release();
+		}
 	}
 
 	async create(createProductDto: CreateProductDto) {
@@ -52,10 +61,22 @@ export class ProductService {
 	}
 
 	async update(id: string, updateProductDto: UpdateProductDto) {
-		return this.productRepository.update(id, updateProductDto);
-	}
+        const product = await this.productRepository.findOne({ where: { id } });
+        if (!product) {
+            throw new NotFoundException(`Product with ID ${id} not found`);
+        }
 
-	async remove(id: string) {
-		return this.productRepository.delete(id);
-	}
+        await this.productRepository.update(id, updateProductDto);
+
+        return this.productRepository.findOne({ where: { id } });
+    }
+
+    async remove(id: string) {
+        const result = await this.productRepository.delete(id);
+        
+        if (result.affected === 0) {
+            throw new NotFoundException(`Product with ID ${id} not found`);
+        }
+        return { message: `Product ${id} successfully deleted` };
+    }
 }

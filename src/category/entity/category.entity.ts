@@ -1,8 +1,8 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, OneToMany, JoinColumn } from 'typeorm';
-
+import { Product } from '../../product/entity/product.entity';
 @Entity('categories')
 export class Category {
-    @PrimaryGeneratedColumn({ type: 'uuid' })
+    @PrimaryGeneratedColumn('uuid')
     id!: string;
 
     @ManyToOne(() => Category, (category) => category.children, { nullable: true, onDelete: 'CASCADE' })
@@ -26,4 +26,7 @@ export class Category {
 
     @Column({ type: 'boolean', default: true })
     isActive!: boolean;
+
+    @OneToMany(() => Product, (product) => product.category)
+    products!: Product[];
 }

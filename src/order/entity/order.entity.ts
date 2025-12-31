@@ -1,12 +1,13 @@
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, JoinColumn, OneToMany } from 'typeorm';
 import { User } from '../../users/entity/user.entity';
 import { OrderItem } from './order_item.entity';
+import { Payment } from '../../payment/entity/payment.entity';
 
 @Entity('orders')
 export class Order {
 	@PrimaryGeneratedColumn('uuid') id!: string;
 
-	@Column('varchar', { length: 50 }, { default: 'pending' }) status!: string;
+	@Column('varchar', { length: 50, default: 'pending' }) status!: string;
 
 	@Column('decimal', { precision: 19, scale: 4, name: 'total_amount' }) totalAmount!: number;
 
@@ -22,4 +23,7 @@ export class Order {
 
 	@OneToMany(() => OrderItem, (orderItem) => orderItem.order, { cascade: true })
 	items!: OrderItem[];
+
+	@OneToMany(() => Payment, (payment) => payment.order, { cascade: true })
+	payments!: Payment[];
 }

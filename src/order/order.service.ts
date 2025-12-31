@@ -42,7 +42,9 @@ export class OrderService {
 			return await this.confirmOrder(pendingOrder);
 
 		} catch (error) {
-			console.error('Go Server Inventory Update Failed:', error.message);
+			if (error instanceof Error) {
+				console.error('Go Server Inventory Update Failed:', error.message);
+			}
 
 			// Compensating Transaction (Roll back)
 			await this.handleOrderFailure(pendingOrder, reservedItemsTracker);

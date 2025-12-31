@@ -32,16 +32,17 @@ export class UserService {
 	async getProfile(userId: string) {
 		const user = this.userRepository.findOne({
 			where: { id: userId },
-			select: ['id', 'email', 'first_name', 'last_name'],
+			select: ['id', 'email', 'firstName', 'lastName'],
 		});
 	}
 
 	async getUserProvider(userId: string): Promise<string> {
-		const user = this.userRepository.findOne({
+		const user = await this.userRepository.findOne({
 			where: { id: userId },
 			select: ['provider'],
 		});
-		return user?.provider ?? null;
+		// if not found, default to 'local'
+		return user?.provider || 'local';
 	}
 
 	async create(createUserDto: CreateUserDto): Promise<User> {

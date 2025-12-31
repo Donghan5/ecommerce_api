@@ -29,11 +29,7 @@ export class ProductController {
 	@UseGuards(AuthGuard('jwt'), RolesGuard)
 	@Roles('admin')
 	async remove(@Param('id') id: string) {
-		const result = await this.productService.remove(id);
-		if (result.affected === 0) {
-			throw new NotFoundException('Product not found');
-		}
-		return result;
+		return this.productService.remove(id);
 	}
 
 	@Post(':id/variants')

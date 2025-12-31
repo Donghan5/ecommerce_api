@@ -1,11 +1,12 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
 import { Product } from './product.entity';
+import { Inventory } from '../../inventory/entity/inventory.entity';
 
 @Entity('product_variants')
 export class ProductVariant {
 	@PrimaryGeneratedColumn('uuid') id!: string;
 
-	@Column('varchar', { length: 255 }, { nullable: false }) name!: string;
+	@Column('varchar', { length: 255 }) name!: string;
 
 	@Column('varchar', { length: 100 }) sku!: string;
 
@@ -20,4 +21,7 @@ export class ProductVariant {
 	@ManyToOne(() => Product, (product) => product.variants)
 	@JoinColumn({ name: 'product_id' })
 	product!: Product;
+
+	@OneToMany(() => Inventory, (inventory) => inventory.variant)
+	inventories!: Inventory[];
 }

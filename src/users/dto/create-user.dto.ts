@@ -3,19 +3,23 @@ import { IsEmail, IsNotEmpty, IsString, MinLength, MaxLength } from "class-valid
 export class CreateUserDto {
 	@IsNotEmpty()
 	@IsEmail({}, { message: 'Not a valid email' })
-	email: string;
+	email!: string;
 
 	@IsNotEmpty()
 	@IsString()
 	@MinLength(6, { message: 'Password must be at least 6 characters' })
 	@MaxLength(32, { message: 'Password must be at most 32 characters' })
-	password: string;
+	password!: string;
 
 	@IsNotEmpty()
 	@IsString()
-	firstName: string;
+	firstName!: string;
 
 	@IsNotEmpty()
 	@IsString()
-	lastName: string;
+	lastName!: string;
+
+	@IsNotEmpty()
+	@IsString()
+	provider!: string;
 }
