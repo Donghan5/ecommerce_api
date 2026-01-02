@@ -24,6 +24,7 @@ export class CartService {
 	async createCart(userId?: string): Promise<Cart> {
 		const cart = this.cartRepository.create({
 			items: [],
+			sessionId: `sess_${Date.now()}_${Math.random().toString(36).substring(7)}`, // mock session ID
 		});
 		return this.cartRepository.save(cart);
 	}

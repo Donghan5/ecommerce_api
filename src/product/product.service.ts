@@ -46,7 +46,11 @@ export class ProductService {
 				warehouseLocation: 'Default Warehouse',
 				lastRestoredAt: new Date(),
 			});
-			await this.inventoryRepository.save(inventory);
+			
+			await queryRunner.manager.save(inventory);
+
+			await queryRunner.commitTransaction();
+			return savedVariant;
 		} catch (error) {
 			await queryRunner.rollbackTransaction();
 			throw error;

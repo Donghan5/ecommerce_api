@@ -4,10 +4,15 @@ import * as bcrypt from "bcrypt";
 import { User } from "../users/entity/user.entity";
 import { JwtService } from "@nestjs/jwt";
 import { CreateUserDto } from "../users/dto/create-user.dto";
+import { ConfigService } from "@nestjs/config";
 
 @Injectable()
 export class AuthService {
-	constructor(private userService: UserService, private jwtService: JwtService) { }
+	constructor(
+		private userService: UserService, 
+		private jwtService: JwtService, 
+		private configService: ConfigService
+	) { }
 
 	// verify local user
 	async validateLocalUser(email: string, password: string): Promise<User | null> {
@@ -44,7 +49,7 @@ export class AuthService {
 	}
 
 	async login(user: any) {
-		const payload = { email: user.email, sub: user.id };
+		const payload = { email: user.email, sub: user.id, role: user.role };
 		return {
 			accessToken: this.jwtService.sign(payload),
 		};
@@ -59,10 +64,15 @@ export class AuthService {
 		const salt = await bcrypt.genSalt();
 		const passwordHashed = await bcrypt.hash(registerDto.password, salt);
 
+		const adminEmail = this.configService.get<string>('ADMIN_EMAIL');
+
+		const role = registerDto.email === adminEmail ? 'admin' : 'user';
+
 		const newUser = await this.userService.create({
 			...registerDto,
 			provider: 'local',
 			passwordHash: passwordHashed,
+			role: role,
 		} as any);
 
 		const { passwordHash, ...result } = newUser;

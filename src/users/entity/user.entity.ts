@@ -19,7 +19,7 @@ export class User {
 
 	@Column({ type: 'varchar', length: 100, name: 'last_name' }) lastName!: string;
 
-	@Column({ type: 'varchar', length: 20 }) role!: string;
+	@Column({ type: 'varchar', length: 20, default: 'user' }) role!: string;
 
 	@Column({ type: 'boolean', default: true, name: 'is_active' }) isActive!: boolean;
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	_ "github.com/lib/pq"
@@ -30,8 +31,17 @@ func main() {
 	}
 	defer db.Close()
 
-	if err = db.Ping(); err != nil {
-		log.Fatal("Failed to ping database:", err)
+	// Wait for the database to be ready (simple retry mechanism)
+	for i := 0; i < 10; i++ {
+		if err = db.Ping(); err == nil {
+			break
+		}
+		log.Println("Waiting for database to be ready...", err)
+		time.Sleep(2 * time.Second)
+	}
+
+	if err != nil {
+		log.Fatal("Failed to connect to database:", err)
 	}
 
 	redisAddr := os.Getenv("REDIS_ADDR")

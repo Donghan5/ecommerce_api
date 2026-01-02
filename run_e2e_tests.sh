@@ -50,17 +50,21 @@ sleep 2 # buffer time
 # 3. Run the E2E tests
 echo -e "${GREEN}Step 3: Running E2E tests...${NC}"
 # Use || true to capture failure without exiting script immediately
-npm run test:e2e || TEST_EXIT_CODE=$?
+
+TEST_EXIT_CODE=0
+
+CI=true npm run test:e2e -- --forceExit --detectOpenHandles > catch_e2e_tests.log 2>&1 || TEST_EXIT_CODE=$?
 
 # 4. Cleanup
 echo -e "${GREEN}Step 4: Cleaning up...${NC}"
 docker-compose down
 
 # Exit with the test status code
-if [ -z "$TEST_EXIT_CODE" ]; then
+if [ "$TEST_EXIT_CODE" -eq 0 ]; then
   echo -e "${GREEN}Tests passed successfully!${NC}"
+   rm catch_e2e_tests.log
   exit 0
 else
-  echo -e "${RED}Tests failed!${NC}"
+  echo -e "${RED}Tests failed! Check catch_e2e_tests.log for details.${NC}"
   exit $TEST_EXIT_CODE
 fi

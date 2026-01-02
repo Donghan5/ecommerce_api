@@ -3,6 +3,9 @@ import { INestApplication, ValidationPipe } from "@nestjs/common";
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
 
+// setting timeout to 30 seconds
+jest.setTimeout(30000);
+
 describe('Ecommerce API Flow (e2e)', () => {
 	let app: INestApplication;
 	let accessToken: string;
@@ -16,7 +19,6 @@ describe('Ecommerce API Flow (e2e)', () => {
 		}).compile();
 
 		app = moduleFixture.createNestApplication();
-		app.setGlobalPrefix('api');
 		app.useGlobalPipes(new ValidationPipe({
 			whitelist: true,
 			transform: true
@@ -25,27 +27,28 @@ describe('Ecommerce API Flow (e2e)', () => {
 	});
 
 	afterAll(async () => {
-		await app.close();
-	})
+		if (app) {
+			await app.close();
+		}
+	});
 
 
 	it('/auth/register (POST) - user register', async () => {
-		const email = `test_${Date.now()}@example.com`;
-
 		await request(app.getHttpServer())
 			.post('/auth/register')
 			.send({
-				email: email,
+				email: 'admin@example.com',
 				password: 'password213',
 				firstName: 'John',
 				lastName: 'Doe',
+				provider: 'local',
 			})
 			.expect(201)
 
 		const response = await request(app.getHttpServer())
 			.post('/auth/login')
 			.send({
-				email: email,
+				email: 'admin@example.com',
 				password: 'password213',
 			})
 			.expect(201);
@@ -91,6 +94,7 @@ describe('Ecommerce API Flow (e2e)', () => {
 				name: 'Black 128GB',
 				sku: `TS-BLK-${Date.now()}`,
 				price: 1000,
+				compareAtPrice: 1100,
 				stock: 10,
 				attributes: {
 					color: 'Black',

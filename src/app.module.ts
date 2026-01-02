@@ -31,6 +31,7 @@ import { PaymentModule } from './payment/payment.module';
         database: configService.get<string>('POSTGRES_DB'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true, // Use with development only, disable in production
+        autoLoadEntities: true,
       }),
     }),
 
