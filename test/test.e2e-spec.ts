@@ -12,6 +12,7 @@ describe('Ecommerce API Flow (e2e)', () => {
 	let categoryId: string;
 	let productId: string;
 	let variantId: string;
+	let cartId: string;
 
 	beforeAll(async () => {
 		const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -110,8 +111,37 @@ describe('Ecommerce API Flow (e2e)', () => {
 		const response = await request(app.getHttpServer())
 			.post('/carts')
 			.expect(201);
+		cartId = response.body.id;
+		expect(cartId).toBeDefined();
+	});
 
+	it('/carts/:id/items (POST) - Add item to cart', async () => {
+		const response = await request(app.getHttpServer())
+			.post(`/carts/${cartId}/items`)
+			.send({
+				variantId: variantId,
+				quantity: 2
+			})
+			.expect(201);
+		
+		const item = response.body.items.find((i: any) => i.variant.id === variantId);
+		expect(item).toBeDefined();
+		expect(item.quantity).toBe(2);
+	});
+
+	it('/order (POST) - Create order and decrease stock', async () => {
+		const response = await request(app.getHttpServer())
+			.post('/order')
+			.set('Authorization', `Bearer ${accessToken}`)
+			.send({
+				items: [
+					{ variantId: variantId, quantity: 2 }
+				]
+			})
+			.expect(201);
+		
 		expect(response.body.id).toBeDefined();
+		expect(response.body.status).toBe('confirmed'); // 혹은 로직에 따라 pending/confirmed
 	});
 	
 })

@@ -2,7 +2,7 @@
 set -e
 
 # --- 설정 ---
-DB_CONTAINER="ecommerce_postgres"
+DB_CONTAINER="postgres_db"
 MAX_RETRIES=40
 # -----------
 
@@ -48,6 +48,5 @@ until docker logs $DB_CONTAINER 2>&1 | grep -q "database system is ready to acce
 done
 echo "✅ Database is ready!"
 
-echo "✨ [7/7] Building and Starting App..."
-npm run build
-npm run start:dev
+echo "✨ [7/7] Building and Starting App... Copy command to run "
+echo "npm run dev"npm run dev

@@ -66,7 +66,7 @@ func main() {
 
 	r.GET("/products", productHandler.GetAllProducts)
 	r.GET("/products/:id", productHandler.GetProductByID)
-	r.GET("/products/:product_id/details", productHandler.GetProductByNameAndPrice)
+	r.GET("/products/:id/details", productHandler.GetProductByNameAndPrice)
 
 	r.GET("/categories", categoryHandler.GetCategories)
 

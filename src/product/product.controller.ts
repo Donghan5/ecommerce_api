@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Patch, Param, Delete, NotFoundException} from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Patch, Param, Delete, NotFoundException, Get} from '@nestjs/common';
 import { ProductService } from './product.service';
 import { CreateProductDto } from './dto/create-product.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -10,6 +10,16 @@ import { CreateVariantDto } from '../cart/dto/create-variant.dto';
 @Controller('products')
 export class ProductController {
 	constructor(private readonly productService: ProductService) {}
+
+	@Get()
+	async findAll() {
+		return this.productService.findAll();
+	}
+
+	@Get(':id')
+	async findOne(@Param('id') id: string) {
+		return this.productService.findOne(id);
+	}
 
 	@Post()
 	@UseGuards(AuthGuard('jwt'), RolesGuard)

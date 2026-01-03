@@ -33,7 +33,7 @@ func (s *ProductService) FindAllProducts() ([]Product, error) {
 
 	defer rows.Close()
 
-	var products []Product
+	products := []Product{}
 
 	for rows.Next() {
 		var p Product

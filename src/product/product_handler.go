@@ -40,7 +40,7 @@ func (h *ProductHandler) GetProductByID(c *gin.Context) {
 }
 
 func (h *ProductHandler) GetProductByNameAndPrice(c *gin.Context) {
-	productId := c.Param("product_id")
+	productId := c.Param("id")
 
 	name, price, err := h.Service.FindNameAndPrice(productId)
 

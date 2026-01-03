@@ -1,5 +1,5 @@
 import { Controller } from "@nestjs/common"
-import { Post, Patch, Delete } from "@nestjs/common/decorators"
+import { Post, Patch, Delete, Get } from "@nestjs/common/decorators"
 import { Body, Param } from "@nestjs/common/decorators"
 import { UseGuards } from "@nestjs/common/decorators"
 import { AuthGuard } from "@nestjs/passport"
@@ -12,6 +12,16 @@ import { UpdateCategoryDto } from "./dto/update-category.dto"
 @Controller("categories")
 export class CategoryController {
 	constructor(private categoryService: CategoryService) {}
+
+	@Get()
+	async findAll() {
+		return this.categoryService.findAll()
+	}
+
+	@Get(':id')
+	async findOne(@Param('id') id:string) {
+		return this.categoryService.findOne(id)
+	}
 
 	@Post()
 	@UseGuards(AuthGuard('jwt'), RolesGuard)

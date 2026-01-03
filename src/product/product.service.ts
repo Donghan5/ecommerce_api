@@ -7,6 +7,9 @@ import { UpdateProductDto } from "./dto/update-product.dto";
 import { CreateVariantDto } from "../cart/dto/create-variant.dto";
 import { ProductVariant } from "./entity/product_variant.entity";
 import { Inventory } from "../inventory/entity/inventory.entity";
+import { HttpService } from "@nestjs/axios";
+import { firstValueFrom } from "rxjs";
+import { AxiosError } from "axios";
 
 @Injectable()
 export class ProductService {
@@ -18,10 +21,51 @@ export class ProductService {
 		@InjectRepository(Inventory)
 		private inventoryRepository: Repository<Inventory>,
 		private dataSource: DataSource,
+		private readonly httpService: HttpService,
 	) { }
 
+	private get goUrl(): string {
+		console.log(process.env.GO_ADDRESS);
+		return process.env.GO_ADDRESS || 'http://localhost:8080';
+	}
+
+	async findAll() {
+		try {
+			const { data } = await firstValueFrom(
+				this.httpService.get(`${this.goUrl}/products`)
+			);
+			if (!data) {
+				throw new Error('No data received from Go service');
+			}
+			return data;
+		} catch (error) {
+			const axiosError = error as AxiosError;
+			console.error('Go Service Error (findAll):', axiosError.message);
+			throw new Error(axiosError.message);
+		}
+	}
+
+	async findOne(id: string) {
+		try {
+			const { data } = await firstValueFrom(
+				this.httpService.get(`${this.goUrl}/products/${id}`)
+			);
+			if (!data) {
+				throw new Error('No data received from Go service');
+			}
+			return data;
+		} catch (error) {
+			const axiosError = error as AxiosError;
+			if (axiosError.response?.status === 404) {
+				throw new NotFoundException(`Product with ID ${id} not found`);
+			}
+			console.error('Go Service Error (findOne):', axiosError.message);
+			throw new Error(axiosError.message);
+		}
+	}
+
 	async createVariant(productId: string, createVariantDto: CreateVariantDto) {
-		const product = await this.productRepository.findOne({ where: { id: productId }});
+		const product = await this.productRepository.findOne({ where: { id: productId } });
 		if (!product) {
 			throw new NotFoundException(`Product with ID ${productId} not found`);
 		}
@@ -46,7 +90,7 @@ export class ProductService {
 				warehouseLocation: 'Default Warehouse',
 				lastRestoredAt: new Date(),
 			});
-			
+
 			await queryRunner.manager.save(inventory);
 
 			await queryRunner.commitTransaction();
@@ -65,22 +109,22 @@ export class ProductService {
 	}
 
 	async update(id: string, updateProductDto: UpdateProductDto) {
-        const product = await this.productRepository.findOne({ where: { id } });
-        if (!product) {
-            throw new NotFoundException(`Product with ID ${id} not found`);
-        }
+		const product = await this.productRepository.findOne({ where: { id } });
+		if (!product) {
+			throw new NotFoundException(`Product with ID ${id} not found`);
+		}
 
-        await this.productRepository.update(id, updateProductDto);
+		await this.productRepository.update(id, updateProductDto);
 
-        return this.productRepository.findOne({ where: { id } });
-    }
+		return this.productRepository.findOne({ where: { id } });
+	}
 
-    async remove(id: string) {
-        const result = await this.productRepository.delete(id);
-        
-        if (result.affected === 0) {
-            throw new NotFoundException(`Product with ID ${id} not found`);
-        }
-        return { message: `Product ${id} successfully deleted` };
-    }
+	async remove(id: string) {
+		const result = await this.productRepository.delete(id);
+
+		if (result.affected === 0) {
+			throw new NotFoundException(`Product with ID ${id} not found`);
+		}
+		return { message: `Product ${id} successfully deleted` };
+	}
 }
