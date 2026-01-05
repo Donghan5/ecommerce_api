@@ -27,11 +27,14 @@ export class OrderService {
 		private dataSource: DataSource,
 	) { }
 
+    private get goUrl(): string {
+        return process.env.GO_ADDRESS || 'http://localhost:8080';
+    }
+
 	async createOrder(user: User, items: CartItemDto[]) {
 
 		const pendingOrder = await this.savePendingOrder(user, items);
 
-		// tracker for reserved items (to rollback in case of failure)
 		const reservedItemsTracker: CartItemDto[] = [];
 
 		try {
@@ -46,14 +49,12 @@ export class OrderService {
 				console.error('Go Server Inventory Update Failed:', error.message);
 			}
 
-			// Compensating Transaction (Roll back)
 			await this.handleOrderFailure(pendingOrder, reservedItemsTracker);
 
 			throw new BadRequestException('Inventory update failed, order cancelled.');
 		}
 	}
 
-	// helper function to save pending order
 	private async savePendingOrder(user: User, items: CartItemDto[]): Promise<Order> {
         const queryRunner = this.dataSource.createQueryRunner();
         await queryRunner.connect();
@@ -104,7 +105,7 @@ export class OrderService {
 	// helper function to decrease stock
 	private async decreaseInventory(items: CartItemDto[], reservedItemsTracker: CartItemDto[]) {
 		for (const item of items) {
-				const url = process.env.GO_ADDRESS + '/inventory/decrease';
+				const url = this.goUrl + '/inventory/decrease';
 
 				const payload = {
 					variant_id: item.variantId,
@@ -126,11 +127,10 @@ export class OrderService {
 		return this.orderRepository.save(order);
 	}
 
-	// handle order failure (with rollback transaction)
 	private async handleOrderFailure(order: Order, reservedItemsTracker: CartItemDto[]) {
 		for (const item of reservedItemsTracker) {
 				try {
-					const url = process.env.GO_ADDRESS + '/inventory/increase';
+					const url = this.goUrl + '/inventory/increase';
 
 					const payload = {
 						variant_id: item.variantId,
@@ -147,7 +147,6 @@ export class OrderService {
 			await this.orderRepository.delete(order.id);
 	}
 
-	// get all orders of specific user
 	async getAllOrders(user: User) {
 		return this.orderRepository.find({
 			where: { user: { id: user.id } },
@@ -156,7 +155,6 @@ export class OrderService {
 		});
 	}
 
-	// get order by id
 	async getOrderById(orderId: string, user: User) {
 		const order = await this.orderRepository.findOne({
 			where: { id: orderId },
@@ -174,7 +172,6 @@ export class OrderService {
 		return order
 	}
 
-	// update order status (pending, confirmed, cancelled)
 	async updateOrderStatus(orderId: string, newStatus: string) {
 		const order = await this.orderRepository.findOne({ where: { id: orderId }, relations: ['items'] });
 
@@ -189,7 +186,7 @@ export class OrderService {
 		if (newStatus === 'cancelled' && order.status !== 'cancelled') {
 			try {
 				for (const item of order.items) {
-					const url = process.env.GO_ADDRESS + '/inventory/increase';
+					const url = this.goUrl + '/inventory/increase';
 
 					const payload = {
 						variant_id: item.variantId,
@@ -207,7 +204,6 @@ export class OrderService {
 		return this.orderRepository.save(order);
 	}
 
-	// delete order
 	async deleteOrder(orderId: string) {
 		const order = await this.orderRepository.findOne({ where: { id: orderId } });
 

@@ -3,3 +3,4 @@ milestone.md
 node_modules/
 dist/
 catch_e2e_tests.log
+go_server.log

@@ -28,7 +28,13 @@ describe('Ecommerce API Flow (e2e)', () => {
 
 		try {
 			const entities = dataSource.entityMetadatas;
-			const tableNames = entities.map((entity) => `"${entity.tableName}`
+			const tableNames = entities.map((entity) => `"${entity.tableName}"`).join(', ');
+			
+			if (tableNames.length > 0) {
+				await dataSource.query(`TRUNCATE TABLE ${tableNames} RESTART IDENTITY CASCADE;`);
+			}
+		} catch (error) {
+			console.error('Error during database cleanup:', error);
 		}
 	});
 

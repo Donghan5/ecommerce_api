@@ -1,90 +1,135 @@
 #!/bin/bash
 
-# Exit immediately if a command exits with a non-zero status
+# 에러 발생 시 즉시 종료
 set -e
 
-# Define colors for output
+# 색상 정의
 GREEN='\033[0;32m'
 RED='\033[0;31m'
 YELLOW='\033[1;33m'
-NC='\033[0m' # No Color
+NC='\033[0m'
 
 echo -e "${GREEN}Starting E2E Test Automation...${NC}"
 
-# 0. Check for existing database container and remove it
-echo -e "${GREEN}Step 0: Checking for existing database container...${NC}"
+# =========================================================
+# Step 0: Cleanup (기존 프로세스 정리)
+# =========================================================
+echo -e "${GREEN}Step 0: Cleaning up...${NC}"
 
-if [ -n "$(docker-compose ps -q postgres 2>/dev/null)" ]; then
-  echo -e "${YELLOW}Existing all container found. Removing it...${NC}"
-  docker-compose down -v --remove-orphans
-  echo -e "${GREEN}Existing all container removed.${NC}"
-else
-  echo "No existing postgres container found."
+# 8080 포트 점유 프로세스 종료
+if lsof -t -i:8080 >/dev/null; then
+  echo -e "${YELLOW}Killing process on port 8080...${NC}"
+  kill $(lsof -t -i:8080) || true
 fi
 
-# 1. Start Docker containers in detached mode
-echo -e "${GREEN}Step 1: Starting Docker services...${NC}"
+# 기존 컨테이너 종료
+if [ -n "$(docker-compose ps -q postgres 2>/dev/null)" ]; then
+  docker-compose down -v --remove-orphans
+fi
+
+# =========================================================
+# Step 1: Start Database Services
+# =========================================================
+echo -e "${GREEN}Step 1: Starting Postgres & Redis...${NC}"
+
 if [ -f "docker-compose.yml" ]; then
-  docker-compose up -d
+  # [중요] go_app 제외하고 DB만 실행
+  docker-compose up -d postgres redis
 else
   echo -e "${RED}Error: docker-compose.yml not found!${NC}"
   exit 1
 fi
 
-# 2. Wait for Postgres to be ready
-echo -e "${GREEN}Step 2: Waiting for Database to be ready...${NC}"
+# =========================================================
+# Step 2: Wait for Postgres
+# =========================================================
+echo -e "${GREEN}Step 2: Waiting for Database...${NC}"
 
-until docker-compose exec -T postgres pg_isready -U ${POSTGRES_USER:-nestjs_user} -d ${POSTGRES_DB:-nestjs_db}; do
+export POSTGRES_USER=nestjs_user
+export POSTGRES_DB=nestjs_db
+
+until docker-compose exec -T postgres pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}; do
   echo "Waiting for Postgres..."
   sleep 2
 done
 
 echo -e "${GREEN}Database is ready!${NC}"
-sleep 2 # buffer time
+sleep 2
 
-# ==========================================
-# [추가] Step 2.5: Go Server 실행
-# ==========================================
-echo -e "${GREEN}Step 2.5: Starting Go Inventory Server...${NC}"
+# =========================================================
+# Step 2.5: Start Go Server
+# =========================================================
+echo -e "${GREEN}Step 2.5: Starting Go Server...${NC}"
 
-# 주의: src/main.go 경로가 현재 스크립트 실행 위치 기준인지 확인하세요.
-# 만약 Go 프로젝트가 다른 폴더에 있다면 'cd go-app && go run main.go' 처럼 경로를 맞춰야 합니다.
-go run src/main.go > go_server.log 2>&1 &
-GO_SERVER_PID=$! # 백그라운드 프로세스 ID 저장
+export POSTGRES_HOST=localhost
+export POSTGRES_PASSWORD=nestjs_password
+export REDIS_ADDR=localhost:6379
 
-echo "Waiting for Go Server to initialize..."
-sleep 5 # Go 서버가 8080 포트를 열 때까지 대기
-# ==========================================
+# Go 서버 실행 (백그라운드)
+GO_PORT=8080 go run src/main.go > go_server.log 2>&1 &
+GO_SERVER_PID=$!
 
-# 3. Run the E2E tests
-echo -e "${GREEN}Step 3: Running E2E tests...${NC}"
+echo "Waiting for Go Server (Port 8080)..."
+
+MAX_RETRIES=30
+COUNT=0
+
+# 포트가 열릴 때까지 대기
+while true; do
+  if command -v curl >/dev/null 2>&1; then
+    if curl -s http://127.0.0.1:8080 >/dev/null; then
+      break
+    fi
+  else
+    if (echo > /dev/tcp/127.0.0.1/8080) >/dev/null 2>&1; then
+      break
+    fi
+  fi
+
+  sleep 1
+  COUNT=$((COUNT+1))
+  
+  if [ $COUNT -ge $MAX_RETRIES ]; then
+    echo -e "${RED}Go Server failed to start!${NC}"
+    echo -e "${YELLOW}--- go_server.log ---${NC}"
+    cat go_server.log
+    kill $GO_SERVER_PID || true
+    docker-compose down
+    exit 1
+  fi
+  echo -n "."
+done
+
+echo -e "\n${GREEN}Go Server started!${NC}"
+
+# =========================================================
+# Step 3: Run Tests
+# =========================================================
+echo -e "${GREEN}Step 3: Running Tests...${NC}"
+
+export ADMIN_EMAIL=admin@example.com
 
 TEST_EXIT_CODE=0
+CI=true npm run test:e2e --detectOpenHandles || TEST_EXIT_CODE=$?
 
-# CI=true 환경변수는 Jest 등에서 대화형 모드를 끄는 데 유용합니다.
-CI=true npm run test:e2e -- --forceExit --detectOpenHandles > catch_e2e_tests.log 2>&1 || TEST_EXIT_CODE=$?
+# =========================================================
+# Step 4: Final Cleanup
+# =========================================================
+echo -e "${GREEN}Step 4: Cleanup...${NC}"
 
-# 4. Cleanup
-echo -e "${GREEN}Step 4: Cleaning up...${NC}"
+if [ -n "$GO_SERVER_PID" ]; then
+  kill $GO_SERVER_PID || true
+fi
+
 docker-compose down
 
-# ==========================================
-# [추가] Go Server 종료
-# ==========================================
-if [ -n "$GO_SERVER_PID" ]; then
-  echo -e "${YELLOW}Stopping Go Server (PID: $GO_SERVER_PID)...${NC}"
-  kill $GO_SERVER_PID || true # 혹시 이미 죽었더라도 에러 내지 않음
-fi
-# ==========================================
-
-# Exit with the test status code
 if [ "$TEST_EXIT_CODE" -eq 0 ]; then
-  echo -e "${GREEN}Tests passed successfully!${NC}"
+  echo -e "${GREEN}SUCCESS! Tests passed.${NC}"
   rm catch_e2e_tests.log
-  rm go_server.log # Go 서버 로그도 성공 시 삭제 (원하면 유지 가능)
+  rm go_server.log
   exit 0
 else
-  echo -e "${RED}Tests failed! Check catch_e2e_tests.log for details.${NC}"
-  echo -e "${RED}You can also check go_server.log for server errors.${NC}"
+  echo -e "${RED}FAILURE! Tests failed.${NC}"
+  echo -e "${RED}Check catch_e2e_tests.log${NC}"
   exit $TEST_EXIT_CODE
 fi

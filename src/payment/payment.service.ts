@@ -17,7 +17,7 @@ export class PaymentService {
 	async processPayment(order: Order): Promise<Payment> {
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        const isSuccess = Math.random() > 0.2; 
+        const isSuccess = true;
 
         if (!isSuccess) {
             console.log(`[Mock Payment] Payment failed for Order ID: ${order.id}`);

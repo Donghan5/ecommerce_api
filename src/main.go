@@ -17,13 +17,20 @@ import (
 )
 
 func main() {
+	host := os.Getenv("POSTGRES_HOST")
+	if host == "" {
+		log.Println("Warning: POSTGRES_HOST is empty")
+	}
+
 	connStr := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=disable",
-		os.Getenv("POSTGRES_HOST"),
+		host,
 		"5432",
 		os.Getenv("POSTGRES_USER"),
 		os.Getenv("POSTGRES_PASSWORD"),
 		os.Getenv("POSTGRES_DB"),
 	)
+    
+	log.Println("Connecting to DB with:", connStr)
 
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
@@ -31,9 +38,10 @@ func main() {
 	}
 	defer db.Close()
 
-	// Wait for the database to be ready (simple retry mechanism)
+	// Wait for the database to be ready
 	for i := 0; i < 10; i++ {
 		if err = db.Ping(); err == nil {
+			log.Println("Successfully connected to database!")
 			break
 		}
 		log.Println("Waiting for database to be ready...", err)

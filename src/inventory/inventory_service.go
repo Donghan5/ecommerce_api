@@ -15,7 +15,7 @@ func NewInventoryService(db *sql.DB) *InventoryService {
 
 // check inventory (quantity)
 func (s *InventoryService) CheckStock(variantId string) (int, error) {
-	query := "SELECT quantity_available FROM inventory WHERE variant_id = $1"
+	query := "SELECT quantity_available FROM inventories WHERE variant_id = $1"
 	
 	var stock int
 	
@@ -29,7 +29,7 @@ func (s *InventoryService) CheckStock(variantId string) (int, error) {
 
 // When the client reject the order, the stock should be increased
 func (s *InventoryService) IncreaseStock(variantId string, quantity int) error {
-	query := "UPDATE inventory SET quantity_available = quantity_available + $1 WHERE variant_id = $2"
+	query := "UPDATE inventories SET quantity_available = quantity_available + $1 WHERE variant_id = $2"
 	
 	_, err := s.DB.Exec(query, quantity, variantId)
 	if err != nil {
@@ -41,7 +41,7 @@ func (s *InventoryService) IncreaseStock(variantId string, quantity int) error {
 
 // When the client accept the order, the stock should be decreased
 func (s *InventoryService) DecreaseStock(variantId string, quantity int) error {
-	query := "UPDATE inventory SET quantity_available = quantity_available - $1 WHERE variant_id = $2 AND quantity_available >= $1"
+	query := "UPDATE inventories SET quantity_available = quantity_available - $1 WHERE variant_id = $2 AND quantity_available >= $1"
 	
 	result, err := s.DB.Exec(query, quantity, variantId)
 	if err != nil {

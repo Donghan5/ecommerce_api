@@ -1,11 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, JoinColumn } from 'typeorm';
 import { Order } from '../../order/entity/order.entity';
 
 @Entity('payments')
 export class Payment {
 	@PrimaryGeneratedColumn('uuid') id!: string;
-
-	@Column('uuid', { name: 'order_id' }) orderId!: string;
 
 	@Column('varchar', { length: 50 }) provider!: string;
 
@@ -22,5 +20,6 @@ export class Payment {
 	@CreateDateColumn({ type: 'timestamp', name: 'created_at' }) createdAt!: Date;
 
 	@ManyToOne(() => Order, (order) => order.payments)
+	@JoinColumn({ name: 'order_id' })	
 	order!: Order;
 }
