@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# --- 설정 ---
+# --- setting ---
 DB_CONTAINER="postgres_db"
 MAX_RETRIES=40
 # -----------

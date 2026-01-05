@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication, ValidationPipe } from "@nestjs/common";
 import request from 'supertest';
 import { AppModule } from '../src/app.module';
+import { DataSource } from 'typeorm';
 
 // setting timeout to 30 seconds
 jest.setTimeout(30000);
@@ -13,6 +14,7 @@ describe('Ecommerce API Flow (e2e)', () => {
 	let productId: string;
 	let variantId: string;
 	let cartId: string;
+	let dataSource: DataSource;
 
 	beforeAll(async () => {
 		const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -20,11 +22,14 @@ describe('Ecommerce API Flow (e2e)', () => {
 		}).compile();
 
 		app = moduleFixture.createNestApplication();
-		app.useGlobalPipes(new ValidationPipe({
-			whitelist: true,
-			transform: true
-		}));
 		await app.init();
+
+		dataSource = moduleFixture.get<DataSource>(DataSource);
+
+		try {
+			const entities = dataSource.entityMetadatas;
+			const tableNames = entities.map((entity) => `"${entity.tableName}`
+		}
 	});
 
 	afterAll(async () => {
