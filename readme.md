@@ -67,14 +67,14 @@ GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET: Google OAuth configuration.
 JWT_SECRET: Secret key for signing JWTs.
 
 4. Run Infrastructure (Docker)
-Start PostgreSQL, Redis, and the Go service using Docker.
+Start PostgreSQL, Redis, and the Go service using Docker. (I will test makefile)
 ```
 Bash
 
 # Using Makefile
 make up
 ```
-# Or using docker-compose directly
+# Using docker-compose directly
 ```docker-compose up -d```
 Note: The NestJS service is commented out in docker-compose.yml to allow local development.
 
